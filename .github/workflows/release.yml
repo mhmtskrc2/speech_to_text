@@ -1,0 +1,161 @@
+name: Release
+
+# Bir `v*` etiketi atıldığında (veya elle tetiklendiğinde) Rust kurulu olmayan
+# makinelerde doğrudan çalışan paketler üretip GitHub Release'e yükler.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Paketlerin yükleneceği etiket (örn. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: tag
+        run: echo "tag=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Release'i oluştur
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release zaten var; paketler üzerine yazılacak."
+          else
+            gh release create "$TAG" \
+              --title "Sesten Metne $TAG" \
+              --notes-file .github/release-notes.md
+          fi
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS Apple Silicon
+            os: macos-14
+            target: aarch64-apple-darwin
+            # Metal gölgelendiricileri ikiliye gömülür (GGML_METAL_EMBED_LIBRARY),
+            # yani yanında ek bir dosya taşımak gerekmez.
+            features: metal
+            asset: sesten-metne-macos-apple-silicon.zip
+          - name: macOS Intel
+            os: macos-13
+            target: x86_64-apple-darwin
+            features: ""
+            asset: sesten-metne-macos-intel.zip
+          - name: Windows x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            features: ""
+            asset: sesten-metne-windows-x64.zip
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust araç zincirini hazırla
+        run: |
+          rustup update --no-self-update stable
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+          rustc --version
+
+      - name: Derle
+        shell: bash
+        run: |
+          set -euo pipefail
+          FEATURES=()
+          if [ -n "${{ matrix.features }}" ]; then
+            FEATURES=(--features "${{ matrix.features }}")
+          fi
+          cargo build --release --locked --target "${{ matrix.target }}" "${FEATURES[@]}"
+
+      - name: Paketle (macOS uygulaması)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="Sesten Metne.app"
+          VERSION="${{ needs.create-release.outputs.tag }}"
+          VERSION="${VERSION#v}"
+
+          mkdir -p "$APP/Contents/MacOS"
+          cp "target/${{ matrix.target }}/release/whisper_gui" "$APP/Contents/MacOS/whisper_gui"
+          chmod +x "$APP/Contents/MacOS/whisper_gui"
+
+          cat > "$APP/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key><string>Sesten Metne</string>
+            <key>CFBundleDisplayName</key><string>Sesten Metne</string>
+            <key>CFBundleExecutable</key><string>whisper_gui</string>
+            <key>CFBundleIdentifier</key><string>dev.whisper-gui.WhisperGui</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>${VERSION}</string>
+            <key>CFBundleVersion</key><string>${VERSION}</string>
+            <key>LSMinimumSystemVersion</key><string>11.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+
+          # Paketin yapısını ve çalıştırma izinlerini koruyarak sıkıştır.
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "${{ matrix.asset }}"
+
+      - name: Paketle (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Path pkg | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "pkg/Sesten Metne.exe"
+          Copy-Item README.md "pkg/OKUBENI.md"
+          Compress-Archive -Path pkg/* -DestinationPath "${{ matrix.asset }}"
+
+      # Duman testi: pencere açılamaz ama komut satırı modu tüm boru hattını
+      # (whisper.cpp dahil) yükler, yani bozuk bir ikili burada yakalanır.
+      - name: Paket çalışıyor mu (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          "Sesten Metne.app/Contents/MacOS/whisper_gui" --list-models | head -3
+
+      - name: Paket çalışıyor mu (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          # Sürüm derlemesi konsolsuz olduğu için çıktı değil, çıkış kodu denetlenir.
+          $p = Start-Process -FilePath "pkg/Sesten Metne.exe" `
+                             -ArgumentList "--list-models" `
+                             -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) {
+            throw "beklenmeyen çıkış kodu: $($p.ExitCode)"
+          }
+
+      - name: Release'e yükle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload "${{ needs.create-release.outputs.tag }}" \
+            "${{ matrix.asset }}" --clobber

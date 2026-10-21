@@ -8,9 +8,17 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0.104"
 directories = "6.0.0"
+# eframe'in varsayılanları kapalı: wgpu yerine daha geniş uyumlu glow kullanılıyor.
+# Geri kalan varsayılanlar tek tek açık — özellikle `clipboard` olmadan kopyala /
+# yapıştır hiç derlenmez ve `system_fonts` olmadan, gömülü fontta bulunmayan
+# karakterler (çıktı metni her dilden gelebilir) boş kutu olarak çizilir.
 eframe = { version = "0.37.0", default-features = false, features = [
+    "accesskit",
+    "clipboard",
     "default_fonts",
     "glow",
+    "links",
+    "system_fonts",
     "wayland",
     "x11",
 ] }

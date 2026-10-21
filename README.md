@@ -18,7 +18,30 @@ kullanımda çekmek içindir.
 
 Çıktı biçimi düz metin, zaman damgalı metin veya SRT altyazı olabilir.
 
-## Kurulum
+## Hazır indirmeler
+
+Rust kurmanıza gerek yok. [Releases](https://github.com/mhmtskrc2/speech_to_text/releases)
+sayfasından kendi sisteminize uyan paketi indirin:
+
+| İndirme | Kimin için |
+|---|---|
+| `sesten-metne-macos-apple-silicon.zip` | M1 / M2 / M3 / M4 Mac'ler (Metal hızlandırmalı) |
+| `sesten-metne-macos-intel.zip` | Intel işlemcili Mac'ler |
+| `sesten-metne-windows-x64.zip` | 64-bit Windows 10 / 11 |
+
+**macOS'ta ilk açılış.** Uygulama imzalı olmadığından macOS ilk seferde
+engeller: **Sesten Metne.app**'e sağ tıklayın → **Aç** → uyarıda yine **Aç**.
+Bir kez yeterlidir. Hiç açılmazsa:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Sesten Metne.app"
+```
+
+**Windows'ta ilk açılış.** SmartScreen uyarırsa **Ek bilgi** → **Yine de
+çalıştır**. Açılmazsa [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+kurup tekrar deneyin.
+
+## Kaynaktan derleme
 
 Gereksinimler: [Rust](https://rustup.rs) ve bir C/C++ derleyicisi + CMake
 (whisper.cpp kaynaktan derlenir).
