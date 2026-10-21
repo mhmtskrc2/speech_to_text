@@ -1,0 +1,50 @@
+[package]
+name = "whisper_gui"
+version = "0.1.0"
+edition = "2024"
+description = "MP3 URL'sinden metin çıkaran, whisper.cpp tabanlı masaüstü uygulaması"
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0.104"
+directories = "6.0.0"
+eframe = { version = "0.37.0", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "wayland",
+    "x11",
+] }
+egui = "0.37.0"
+flate2 = { version = "1.1.10", default-features = false, features = ["rust_backend"] }
+rfd = "0.17.2"
+rubato = "5.0.1"
+sha2 = "0.10"
+symphonia = { version = "0.6.1", features = [
+    "aac",
+    "adpcm",
+    "alac",
+    "flac",
+    "isomp4",
+    "mp3",
+    "ogg",
+    "pcm",
+    "vorbis",
+    "wav",
+] }
+ureq = "3.5.0"
+whisper-rs = "0.16.0"
+
+[features]
+default = []
+# macOS'ta GPU hızlandırma: `cargo build --release --features metal`
+metal = ["whisper-rs/metal"]
+# NVIDIA GPU'lu Windows/Linux için: `cargo build --release --features cuda`
+cuda = ["whisper-rs/cuda"]
+# Taşınabilir GPU hızlandırma (Vulkan SDK gerekir)
+vulkan = ["whisper-rs/vulkan"]
+
+[profile.release]
+opt-level = 3
+
+[dev-dependencies]
+egui_kittest = { version = "0.37.0", features = ["wgpu", "snapshot", "eframe"] }
