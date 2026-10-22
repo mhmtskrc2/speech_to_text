@@ -48,6 +48,22 @@ pub type ProgressCallback = Box<dyn FnMut(i32) + 'static>;
 /// Called for each segment as soon as it is decoded, for live output.
 pub type SegmentCallback = Box<dyn FnMut(Segment) + 'static>;
 
+/// Which GPU backend, if any, is compiled into this build.
+///
+/// Metal is wired in for every macOS target in `Cargo.toml`, so it is a
+/// property of the platform rather than of a feature flag — checking a feature
+/// here would report "no GPU" on a Mac that is in fact using one. CUDA and
+/// Vulkan stay opt-in because they need an SDK at build time.
+pub const GPU_BACKEND: Option<&str> = if cfg!(target_os = "macos") {
+    Some("Metal")
+} else if cfg!(feature = "cuda") {
+    Some("CUDA")
+} else if cfg!(feature = "vulkan") {
+    Some("Vulkan")
+} else {
+    None
+};
+
 /// Default thread count: leave one core for the UI, but always use at least one.
 pub fn default_threads() -> i32 {
     let cores = std::thread::available_parallelism()

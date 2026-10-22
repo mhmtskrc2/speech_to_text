@@ -25,8 +25,7 @@ sayfasından kendi sisteminize uyan paketi indirin:
 
 | İndirme | Kimin için |
 |---|---|
-| `sesten-metne-macos-apple-silicon.zip` | M1 / M2 / M3 / M4 Mac'ler (Metal hızlandırmalı) |
-| `sesten-metne-macos-intel.zip` | Intel işlemcili Mac'ler |
+| `sesten-metne-macos.zip` | Tüm Mac'ler — evrensel paket, Apple Silicon'da Metal hızlandırmalı |
 | `sesten-metne-windows-x64.zip` | 64-bit Windows 10 / 11 |
 
 **macOS'ta ilk açılış.** Uygulama imzalı olmadığından macOS ilk seferde
@@ -64,15 +63,42 @@ cargo build --release
 | **Windows** | Visual Studio Build Tools (C++ iş yükü) ve CMake |
 | **Linux** | `build-essential`, `cmake`, `libgtk-3-dev` |
 
-### GPU hızlandırma (isteğe bağlı)
+### GPU hızlandırma
 
-Varsayılan derleme CPU kullanır. Daha hızlısı için:
+**macOS'ta Metal her zaman açıktır** — ayrı bir bayrak gerekmez, düz
+`cargo build --release` yeterlidir. Arayüzde de bir seçenek yoktur: hızlandırma
+varsa kullanılır, bir makinede Metal başlatılamazsa whisper.cpp kendiliğinden
+CPU'ya düşer. Hangisinin geçerli olduğunu "Gelişmiş" bölümündeki
+*Hızlandırma:* satırından görebilirsiniz.
+
+Windows ve Linux'ta GPU, derleme zamanında SDK gerektirdiği için isteğe bağlıdır
+(dağıtılan paketler CPU'da çalışır):
 
 ```bash
-cargo build --release --features metal    # Apple Silicon
-cargo build --release --features cuda     # NVIDIA
-cargo build --release --features vulkan   # taşınabilir
+cargo build --release --features cuda     # NVIDIA, CUDA toolkit gerekir
+cargo build --release --features vulkan   # taşınabilir, Vulkan SDK gerekir
 ```
+
+## Hız
+
+Model seçimi süreyi doğrudan belirler. Apple Silicon bir Mac'te ölçülen,
+**1 saatlik ses** için yaklaşık süreler:
+
+| Model | Apple Silicon (Metal) | Yalnızca CPU |
+|---|---|---|
+| `base` | ~2 dakika | ~7 dakika |
+| `large-v3-turbo (q5_0)` | ~5 dakika | ~26 dakika |
+| `large-v3` | ~9 dakika | ~44 dakika |
+
+(63 saniyelik Türkçe bir kayıtla ölçülüp bir saate oranlandı; model zaten
+indirilmiş kabul edilmiştir. Kendi makineniz ve ses kalitenize göre değişir.)
+
+Mac paketinde Metal hazır gelir. Windows paketi CPU'da çalışır, yani sağdaki
+sütun geçerlidir. `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük
+kullanımda `large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
+
+İlerleme çubuğunun yanında geçen süre ve tahmini kalan süre gösterilir, yani
+yavaş bir işi askıda kalmış bir işten ayırt edebilirsiniz.
 
 ## Modeller
 

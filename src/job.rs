@@ -49,7 +49,11 @@ pub enum Event {
     Finished {
         segments: Vec<Segment>,
         audio_secs: f64,
+        /// Baştan sona geçen süre: indirme, çözümleme ve metne dönüştürme.
         elapsed_secs: f64,
+        /// Yalnızca metne dönüştürme. Hız oranı bundan hesaplanır; aksi halde
+        /// bir kerelik model indirmesi oranı anlamsız kılıyordu.
+        transcribe_secs: f64,
         decoder: &'static str,
         suggested_stem: String,
     },
@@ -234,6 +238,7 @@ fn execute(request: &Request, cancel: &Arc<AtomicBool>, events: &Sender<Event>) 
     // 4. Transcribe.
     let _ = events.send(Event::Stage(Stage::Transcribing));
     let _ = events.send(Event::Progress(Some(0.0)));
+    let transcribe_started = Instant::now();
 
     let progress_events = events.clone();
     let segment_events = events.clone();
@@ -276,6 +281,7 @@ fn execute(request: &Request, cancel: &Arc<AtomicBool>, events: &Sender<Event>) 
         segments,
         audio_secs,
         elapsed_secs: started.elapsed().as_secs_f64(),
+        transcribe_secs: transcribe_started.elapsed().as_secs_f64(),
         decoder: decoded.via,
         suggested_stem,
     });

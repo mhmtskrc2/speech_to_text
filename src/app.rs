@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::job::{self, Event, Input, Stage};
 use crate::models::{self, MODELS};
@@ -21,7 +21,6 @@ pub struct App {
     language_index: usize,
     format: OutputFormat,
     translate: bool,
-    use_gpu: bool,
     threads: i32,
     prompt: String,
 
@@ -37,6 +36,13 @@ pub struct App {
     stage: Option<Stage>,
     status: String,
     progress: Option<f32>,
+    /// When the current stage began, so the UI can show elapsed time and an
+    /// estimate. Without these, a slow transcription is indistinguishable from
+    /// a hung one.
+    stage_started: Option<Instant>,
+    /// Progress at the moment the stage started; the estimate is based on how
+    /// much has been covered since, not on the absolute percentage.
+    stage_start_progress: f32,
     error: Option<String>,
     summary: Option<String>,
 
@@ -54,7 +60,6 @@ impl Default for App {
             language_index: 0,
             format: OutputFormat::Plain,
             translate: false,
-            use_gpu: true,
             threads: transcribe::default_threads(),
             prompt: String::new(),
             auto_save: true,
@@ -66,6 +71,8 @@ impl Default for App {
             stage: None,
             status: "Bir ses adresi girip \"Metne Dönüştür\"e basın.".into(),
             progress: None,
+            stage_started: None,
+            stage_start_progress: 0.0,
             error: None,
             summary: None,
             cancel: None,
@@ -109,6 +116,8 @@ impl App {
         self.saved_to = None;
         self.progress = None;
         self.stage = None;
+        self.stage_started = None;
+        self.stage_start_progress = 0.0;
         self.status = "Başlatılıyor…".into();
 
         let language = transcribe::LANGUAGES
@@ -125,7 +134,8 @@ impl App {
                 translate: self.translate,
                 threads: self.threads,
                 initial_prompt: self.prompt.clone(),
-                use_gpu: self.use_gpu,
+                // Arayüzde tercih yok: hızlandırma varsa kullanılır.
+                use_gpu: true,
             },
             sender.clone(),
         );
@@ -148,6 +158,7 @@ impl App {
         self.cancel = None;
         self.stage = None;
         self.progress = None;
+        self.stage_started = None;
     }
 
     fn drain_events(&mut self) {
@@ -172,9 +183,22 @@ impl App {
                 Event::Stage(stage) => {
                     self.stage = Some(stage);
                     self.status = format!("{}…", stage.label());
+                    self.stage_started = Some(Instant::now());
+                    self.stage_start_progress = 0.0;
+                    self.progress = None;
                 }
                 Event::Status(text) => self.status = text,
-                Event::Progress(value) => self.progress = value,
+                Event::Progress(value) => {
+                    if self.progress.is_none()
+                        && let Some(value) = value
+                    {
+                        // First reading of this stage: restart the clock here so
+                        // model loading time doesn't skew the estimate.
+                        self.stage_start_progress = value;
+                        self.stage_started = Some(Instant::now());
+                    }
+                    self.progress = value;
+                }
                 Event::Segment(segment) => {
                     self.segments.push(segment);
                     self.text = transcribe::render(&self.segments, self.format);
@@ -183,22 +207,26 @@ impl App {
                     segments,
                     audio_secs,
                     elapsed_secs,
+                    transcribe_secs,
                     decoder,
                     suggested_stem,
                 } => {
                     self.segments = segments;
                     self.text = transcribe::render(&self.segments, self.format);
                     self.suggested_stem = suggested_stem;
-                    let speed = if elapsed_secs > 0.0 {
-                        audio_secs / elapsed_secs
+                    // Hız oranı yalnızca metne dönüştürmeden hesaplanır: ilk
+                    // çalıştırmada araya giren model indirmesi oranı bozardı.
+                    let speed = if transcribe_secs > 0.0 {
+                        audio_secs / transcribe_secs
                     } else {
                         0.0
                     };
                     self.summary = Some(format!(
-                        "{} parça · {:.0} sn ses · {:.1} sn sürdü ({:.1}× gerçek zaman) · çözümleyici: {decoder}",
+                        "{} parça · {:.0} sn ses · toplam {} · metne dönüştürme {} ({:.1}× gerçek zaman) · çözümleyici: {decoder}",
                         self.segments.len(),
                         audio_secs,
-                        elapsed_secs,
+                        clock(Duration::from_secs_f64(elapsed_secs)),
+                        clock(Duration::from_secs_f64(transcribe_secs)),
                         speed
                     ));
                     self.status = "Tamamlandı.".into();
@@ -498,10 +526,20 @@ impl App {
 
             ui.collapsing("Gelişmiş", |ui| {
                 ui.add(egui::Slider::new(&mut self.threads, 1..=32).text("İş parçacığı"));
-                ui.checkbox(&mut self.use_gpu, "GPU hızlandırmayı kullan (varsa)")
-                    .on_hover_text(
-                        "Yalnızca uygulama GPU desteğiyle derlendiyse etkilidir (metal/cuda/vulkan)",
-                    );
+                // GPU hızlandırma bir tercih değil: varsa her zaman kullanılır.
+                // Burada yalnızca durumu bildiriyoruz.
+                let (text, hint) = match transcribe::GPU_BACKEND {
+                    Some(backend) => (
+                        format!("Hızlandırma: {backend}"),
+                        "GPU kullanılamazsa işlem kendiliğinden CPU'ya düşer",
+                    ),
+                    None => (
+                        "Hızlandırma: CPU".to_string(),
+                        "Bu platformda GPU arka ucu yok; işlem CPU'da çalışır",
+                    ),
+                };
+                ui.label(egui::RichText::new(text).small().weak())
+                    .on_hover_text(hint);
                 ui.label("Sözlük ipucu (özel isimler, terimler):");
                 ui.add(
                     egui::TextEdit::multiline(&mut self.prompt)
@@ -538,11 +576,37 @@ impl App {
                     Some(value) => egui::ProgressBar::new(value).show_percentage(),
                     None => egui::ProgressBar::new(0.0).animate(true).text("çalışıyor"),
                 };
-                ui.add(bar.desired_width(260.0));
+                ui.add(bar.desired_width(220.0));
+
+                // Elapsed time always moves, even when the percentage sits on
+                // the same value for minutes — that is the difference between
+                // "slow" and "frozen", and the user can't tell without it.
+                if let Some(timing) = self.timing() {
+                    ui.label(egui::RichText::new(timing).small().weak());
+                }
             }
 
             ui.label(&self.status);
         });
+    }
+
+    /// `geçen 04:12 · kalan ~18 dk` — the estimate appears only once there is
+    /// enough progress for it to mean anything.
+    fn timing(&self) -> Option<String> {
+        let started = self.stage_started?;
+        let elapsed = started.elapsed();
+        let mut text = format!("geçen {}", clock(elapsed));
+
+        if let Some(progress) = self.progress {
+            let covered = progress - self.stage_start_progress;
+            let remaining = 1.0 - progress;
+            if covered > 0.02 && remaining > 0.0 && elapsed.as_secs_f32() > 5.0 {
+                let per_unit = elapsed.as_secs_f32() / covered;
+                text.push_str(&format!(" · kalan ~{}", rough(remaining * per_unit)));
+            }
+        }
+
+        Some(text)
     }
 
     fn draw_messages(&mut self, ui: &mut egui::Ui) {
@@ -626,6 +690,36 @@ impl App {
 
 /// `in_list` adds the download marker, which only helps while browsing the
 /// dropdown — the closed box already has the state spelled out underneath it.
+/// `mm:ss`, or `h:mm:ss` once it runs past an hour.
+fn clock(duration: Duration) -> String {
+    let total = duration.as_secs();
+    let (hours, minutes, seconds) = (total / 3600, (total % 3600) / 60, total % 60);
+    if hours > 0 {
+        format!("{hours}:{minutes:02}:{seconds:02}")
+    } else {
+        format!("{minutes:02}:{seconds:02}")
+    }
+}
+
+/// A deliberately coarse estimate: the precision of "kalan ~2 sa 10 dk" would
+/// be a lie, and a number that jitters every second reads as broken.
+fn rough(seconds: f32) -> String {
+    let seconds = seconds.max(0.0) as u64;
+    match seconds {
+        0..=90 => format!("{seconds} sn"),
+        91..=3599 => format!("{} dk", (seconds + 30) / 60),
+        _ => {
+            let hours = seconds / 3600;
+            let minutes = (seconds % 3600) / 60;
+            if minutes >= 5 {
+                format!("{hours} sa {} dk", (minutes / 5) * 5)
+            } else {
+                format!("{hours} sa")
+            }
+        }
+    }
+}
+
 fn model_text(index: usize, in_list: bool) -> String {
     let model = &MODELS[index];
     let mark = match (in_list, model.is_downloaded()) {
@@ -663,7 +757,28 @@ fn reveal(path: &std::path::Path) {
 
 #[cfg(test)]
 mod tests {
-    use super::short_path;
+    use super::{clock, rough, short_path};
+    use std::time::Duration;
+
+    #[test]
+    fn formats_elapsed_clock() {
+        assert_eq!(clock(Duration::from_secs(0)), "00:00");
+        assert_eq!(clock(Duration::from_secs(62)), "01:02");
+        assert_eq!(clock(Duration::from_secs(3661)), "1:01:01");
+    }
+
+    #[test]
+    fn estimates_stay_coarse() {
+        assert_eq!(rough(45.0), "45 sn");
+        assert_eq!(rough(90.0), "90 sn");
+        // Just past the seconds cutoff it rounds to the nearest minute.
+        assert_eq!(rough(100.0), "2 dk");
+        assert_eq!(rough(1800.0), "30 dk");
+        // Hours are rounded down to five-minute steps, never to false precision.
+        assert_eq!(rough(7_000.0), "1 sa 55 dk");
+        assert_eq!(rough(3_600.0), "1 sa");
+        assert_eq!(rough(-5.0), "0 sn");
+    }
 
     #[test]
     fn shortens_long_paths_from_the_left() {

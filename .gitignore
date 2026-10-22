@@ -1,1 +1,7 @@
 /target
+
+# egui_kittest, bir anlık görüntü uyuşmadığında bunları üretir; referans
+# olan yalnızca <ad>.png dosyasıdır.
+tests/snapshots/*.diff.png
+tests/snapshots/*.old.png
+tests/snapshots/*.new.png

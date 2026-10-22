@@ -1,6 +1,6 @@
 [package]
 name = "whisper_gui"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "MP3 URL'sinden metin çıkaran, whisper.cpp tabanlı masaüstü uygulaması"
 license = "MIT"
@@ -42,13 +42,17 @@ symphonia = { version = "0.6.1", features = [
 ureq = "3.5.0"
 whisper-rs = "0.16.0"
 
+# macOS'ta Metal her zaman açıktır — ayrı bir bayrak gerektirmez. Metal
+# gölgelendiricileri ikiliye gömüldüğü için yanında dosya taşımak da gerekmez,
+# ve bir makinede Metal başlatılamazsa whisper.cpp kendiliğinden CPU'ya düşer.
+[target.'cfg(target_os = "macos")'.dependencies]
+whisper-rs = { version = "0.16.0", features = ["metal"] }
+
 [features]
 default = []
-# macOS'ta GPU hızlandırma: `cargo build --release --features metal`
-metal = ["whisper-rs/metal"]
-# NVIDIA GPU'lu Windows/Linux için: `cargo build --release --features cuda`
+# Windows/Linux için GPU hızlandırma. Derleme zamanında CUDA toolkit ya da
+# Vulkan SDK gerektirdiğinden, dağıtılan paketlerde açık değildir.
 cuda = ["whisper-rs/cuda"]
-# Taşınabilir GPU hızlandırma (Vulkan SDK gerekir)
 vulkan = ["whisper-rs/vulkan"]
 
 [profile.release]
