@@ -104,16 +104,17 @@ yavaş bir işi askıda kalmış bir işten ayırt edebilirsiniz.
 ## Modeller
 
 Model listesi arayüzdeki açılır menüdedir; yanlarında boyutları ve indirilip
-indirilmedikleri yazar. Varsayılan `base` iyi bir başlangıçtır; Türkçe için
-`large-v3-turbo (q5_0)` belirgin şekilde daha doğrudur.
+indirilmedikleri yazar. Varsayılan `large-v3`, yani en doğru sonucu veren
+model — bunun bedeli ilk çalıştırmadaki 2.9 GB'lık indirmedir. Daha hızlı
+başlamak isterseniz menüden küçük bir model seçmeniz yeterli.
 
 | Model | Boyut | Not |
 |---|---|---|
 | `tiny-q5_1` | 31 MB | en hızlı, en düşük doğruluk |
-| `base` | 141 MB | varsayılan, dengeli |
+| `base` | 141 MB | dengeli, küçük indirme |
 | `small-q5_1` | 181 MB | iyi doğruluk, küçük indirme |
 | `large-v3-turbo-q5_0` | 547 MB | en iyi doğruluk/hız dengesi |
-| `large-v3` | 2.9 GB | en yüksek doğruluk, en yavaş |
+| `large-v3` | 2.9 GB | **varsayılan** — en yüksek doğruluk, en yavaş |
 
 Modeller `ggerganov/whisper.cpp` Hugging Face deposundan indirilir. Her
 indirmenin boyutu ve SHA-256 özeti kaynak kodda sabitlenmiştir; eşleşmeyen bir

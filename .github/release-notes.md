@@ -53,6 +53,9 @@ yavaş bir işi askıda kalmış bir işten ayırt edebilirsiniz.
 
 ### İlk çalıştırmada ne olur
 
-Seçtiğiniz konuşma tanıma modeli (varsayılan `base`, 141 MB) bir kez indirilir
-ve önbelleğe alınır; sonraki çalıştırmalar internet gerektirmez. Ses dosyanız
-hiçbir sunucuya gönderilmez, her şey bilgisayarınızda işlenir.
+Seçtiğiniz konuşma tanıma modeli bir kez indirilir ve önbelleğe alınır;
+sonraki çalıştırmalar internet gerektirmez. Varsayılan `large-v3` en doğru
+sonucu verir ama **2.9 GB** indirir — hemen başlamak için menüden daha küçük
+bir model (örneğin `base`, 141 MB) seçebilirsiniz.
+
+Ses dosyanız hiçbir sunucuya gönderilmez, her şey bilgisayarınızda işlenir.
