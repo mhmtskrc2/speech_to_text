@@ -57,7 +57,7 @@ pub fn main(argv: Vec<String>) -> i32 {
 
 fn run(argv: Vec<String>) -> Result<i32> {
     if argv.iter().any(|a| a == "-h" || a == "--help") {
-        print!("{USAGE}");
+        let _ = out(USAGE);
         return Ok(0);
     }
     if argv.iter().any(|a| a == "--list-models") {
@@ -118,7 +118,14 @@ fn run(argv: Vec<String>) -> Result<i32> {
                         std::fs::write(path, text.as_bytes())?;
                         eprintln!("[kaydedildi] {}", path.display());
                     }
-                    None => print!("{text}"),
+                    None => {
+                        return match out(&text) {
+                            Ok(()) => Ok(0),
+                            // A closed pipe is a normal end, not a failure.
+                            Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => Ok(0),
+                            Err(e) => Err(e.into()),
+                        };
+                    }
                 }
                 return Ok(0);
             }
@@ -135,8 +142,8 @@ fn run(argv: Vec<String>) -> Result<i32> {
 
 fn list_models() {
     for model in MODELS {
-        println!(
-            "{:<22} {:>8}  {}{}",
+        let line = format!(
+            "{:<22} {:>8}  {}{}\n",
             model.id,
             model.size_label(),
             if model.is_downloaded() {
@@ -146,7 +153,21 @@ fn list_models() {
             },
             model.label
         );
+        if out(&line).is_err() {
+            return;
+        }
     }
+}
+
+/// Writes to stdout, reporting a closed pipe instead of panicking.
+///
+/// Rust ignores `SIGPIPE`, so a plain `println!` panics once the reader goes
+/// away — and `whisper_gui ... | head` is an ordinary thing to do.
+fn out(text: &str) -> std::io::Result<()> {
+    use std::io::Write as _;
+    let mut stdout = std::io::stdout().lock();
+    stdout.write_all(text.as_bytes())?;
+    stdout.flush()
 }
 
 fn parse(argv: Vec<String>) -> Result<Args> {

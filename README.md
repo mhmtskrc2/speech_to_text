@@ -25,7 +25,7 @@ sayfasından kendi sisteminize uyan paketi indirin:
 
 | İndirme | Kimin için |
 |---|---|
-| `Sesten Metne.exe` | 64-bit Windows 10 / 11 |
+| `Sesten-Metne.exe` | 64-bit Windows 10 / 11 |
 | `sesten-metne-macos` | Tüm Mac'ler — evrensel ikili, Metal hızlandırmalı |
 
 **Windows'ta ilk açılış.** İndirip çalıştırın. SmartScreen uyarırsa **Ek

@@ -3,7 +3,7 @@ Rust kurmaya gerek yok — aşağıdaki paketi indirip çalıştırmanız yeterl
 
 | İndirme | Kimin için |
 |---|---|
-| `Sesten Metne.exe` | 64-bit Windows 10 / 11 |
+| `Sesten-Metne.exe` | 64-bit Windows 10 / 11 |
 | `sesten-metne-macos` | Tüm Mac'ler (Apple Silicon ve Intel tek dosyada) |
 
 Mac dosyası evrensel (universal) bir ikilidir; hangi işlemciye sahip olduğunuzu
@@ -11,7 +11,7 @@ bilmenize gerek yok. Metal hızlandırması hazır gelir.
 
 ### Windows'ta ilk açılış
 
-**Sesten Metne.exe**'yi indirip çalıştırın. SmartScreen uyarı verirse
+**Sesten-Metne.exe**'yi indirip çalıştırın. SmartScreen uyarı verirse
 **Ek bilgi** → **Yine de çalıştır** deyin (uygulama imzalı değil).
 
 Açılmazsa [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
