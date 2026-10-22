@@ -140,7 +140,11 @@ pub const MODELS: &[Model] = &[
 ];
 
 /// Index of the model selected the first time the app runs.
-pub const DEFAULT_MODEL: usize = 3; // base
+///
+/// This is the most accurate model; the first run therefore pays a 2.9 GB
+/// download. `default_model_is_the_accurate_one` pins it, so reordering the
+/// catalog can't silently change what a new user gets.
+pub const DEFAULT_MODEL: usize = 11;
 
 /// Returns the local path to `model`, downloading it on first use.
 ///
@@ -240,5 +244,24 @@ pub fn human_size(bytes: u64) -> String {
         format!("{value:.1} {}", UNITS[unit])
     } else {
         format!("{value:.0} {}", UNITS[unit])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DEFAULT_MODEL, MODELS};
+
+    #[test]
+    fn default_model_is_the_accurate_one() {
+        assert_eq!(MODELS[DEFAULT_MODEL].id, "large-v3");
+    }
+
+    #[test]
+    fn catalog_entries_are_unique() {
+        let mut ids: Vec<_> = MODELS.iter().map(|m| m.id).collect();
+        ids.sort_unstable();
+        let count = ids.len();
+        ids.dedup();
+        assert_eq!(ids.len(), count, "katalogda yinelenen model kimliği var");
     }
 }

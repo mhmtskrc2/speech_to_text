@@ -25,20 +25,21 @@ sayfasından kendi sisteminize uyan paketi indirin:
 
 | İndirme | Kimin için |
 |---|---|
-| `sesten-metne-macos.zip` | Tüm Mac'ler — evrensel paket, Apple Silicon'da Metal hızlandırmalı |
-| `sesten-metne-windows-x64.zip` | 64-bit Windows 10 / 11 |
+| `Sesten Metne.exe` | 64-bit Windows 10 / 11 |
+| `sesten-metne-macos` | Tüm Mac'ler — evrensel ikili, Metal hızlandırmalı |
 
-**macOS'ta ilk açılış.** Uygulama imzalı olmadığından macOS ilk seferde
-engeller: **Sesten Metne.app**'e sağ tıklayın → **Aç** → uyarıda yine **Aç**.
-Bir kez yeterlidir. Hiç açılmazsa:
+**Windows'ta ilk açılış.** İndirip çalıştırın. SmartScreen uyarırsa **Ek
+bilgi** → **Yine de çalıştır**. Açılmazsa
+[Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+kurup tekrar deneyin.
+
+**macOS'ta ilk açılış.** İndirilen dosya tek bir ikilidir; tarayıcı çalıştırma
+iznini düşürdüğü ve dosya imzalı olmadığı için bir kez şunu yapın:
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/Sesten Metne.app"
+chmod +x ~/Downloads/sesten-metne-macos
+xattr -d com.apple.quarantine ~/Downloads/sesten-metne-macos
 ```
-
-**Windows'ta ilk açılış.** SmartScreen uyarırsa **Ek bilgi** → **Yine de
-çalıştır**. Açılmazsa [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-kurup tekrar deneyin.
 
 ## Kaynaktan derleme
 

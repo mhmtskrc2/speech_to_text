@@ -20,9 +20,9 @@ KULLANIM:
     whisper_gui <url|dosya> [seçenekler] metne dönüştürüp yazar
 
 SEÇENEKLER:
-    -m, --model <ad>     model (varsayılan: base). Listelemek için --list-models
+    -m, --model <ad>     model (varsayılan: large-v3). --list-models ile listele
     -l, --lang <kod>     konuşma dili, örn. tr / en. Belirtilmezse otomatik algılanır
-    -f, --format <biçim> plain | timestamps | srt  (varsayılan: plain)
+    -f, --format <biçim> plain | timestamps | srt  (varsayılan: timestamps)
     -o, --output <yol>   çıktı dosyası. Belirtilmezse stdout'a yazar
     -t, --threads <n>    iş parçacığı sayısı
         --translate      konuşmayı İngilizceye çevirir
@@ -151,9 +151,9 @@ fn list_models() {
 
 fn parse(argv: Vec<String>) -> Result<Args> {
     let mut input: Option<String> = None;
-    let mut model = "base".to_string();
+    let mut model = MODELS[models::DEFAULT_MODEL].id.to_string();
     let mut language = None;
-    let mut format = OutputFormat::Plain;
+    let mut format = OutputFormat::Timestamped;
     let mut output = None;
     let mut threads = transcribe::default_threads();
     let mut translate = false;

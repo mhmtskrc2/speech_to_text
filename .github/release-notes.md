@@ -3,33 +3,32 @@ Rust kurmaya gerek yok — aşağıdaki paketi indirip çalıştırmanız yeterl
 
 | İndirme | Kimin için |
 |---|---|
-| `sesten-metne-macos.zip` | Tüm Mac'ler (Apple Silicon ve Intel tek pakette) |
-| `sesten-metne-windows-x64.zip` | 64-bit Windows 10 / 11 |
+| `Sesten Metne.exe` | 64-bit Windows 10 / 11 |
+| `sesten-metne-macos` | Tüm Mac'ler (Apple Silicon ve Intel tek dosyada) |
 
-Mac paketi evrensel (universal) bir uygulamadır; hangi işlemciye sahip
-olduğunuzu bilmenize gerek yok. Apple Silicon Mac'lerde Metal hızlandırması
-devrededir.
-
-### macOS'ta ilk açılış
-
-Uygulama imzalı olmadığı için macOS ilk seferde engeller. Çözümü:
-
-1. Zip'i açın, **Sesten Metne.app**'i `Uygulamalar` klasörüne sürükleyin.
-2. Uygulamaya **sağ tıklayın** → **Aç** → çıkan uyarıda yine **Aç**.
-
-Bunu yalnızca bir kez yapmanız gerekir. Hiç açılmazsa, Terminal'de:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Sesten Metne.app"
-```
+Mac dosyası evrensel (universal) bir ikilidir; hangi işlemciye sahip olduğunuzu
+bilmenize gerek yok. Metal hızlandırması hazır gelir.
 
 ### Windows'ta ilk açılış
 
-Zip'i açıp **Sesten Metne.exe**'yi çalıştırın. SmartScreen uyarı verirse
+**Sesten Metne.exe**'yi indirip çalıştırın. SmartScreen uyarı verirse
 **Ek bilgi** → **Yine de çalıştır** deyin (uygulama imzalı değil).
 
 Açılmazsa [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 kurulu olmayabilir; kurup tekrar deneyin.
+
+### macOS'ta ilk açılış
+
+İndirilen dosya tek bir çalıştırılabilir ikilidir. Tarayıcı indirmede
+çalıştırma iznini düşürdüğü ve dosya imzalı olmadığı için, Terminal'de bir kez
+şunları çalıştırın:
+
+```bash
+chmod +x ~/Downloads/sesten-metne-macos
+xattr -d com.apple.quarantine ~/Downloads/sesten-metne-macos
+```
+
+Sonra dosyaya çift tıklayarak ya da Terminal'den çalıştırabilirsiniz.
 
 ### Hız hakkında
 

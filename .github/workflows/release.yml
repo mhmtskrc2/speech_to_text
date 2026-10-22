@@ -55,12 +55,12 @@ jobs:
             target: aarch64-apple-darwin
             # Metal bayrak gerektirmez; macOS hedeflerinde Cargo.toml'den gelir.
             features: ""
-            asset: sesten-metne-macos.zip
+            asset: sesten-metne-macos
           - name: Windows x64
             os: windows-latest
             target: x86_64-pc-windows-msvc
             features: ""
-            asset: sesten-metne-windows-x64.zip
+            asset: "Sesten Metne.exe"
 
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -96,52 +96,25 @@ jobs:
             cargo build --release --locked --target x86_64-apple-darwin
           fi
 
-      - name: Paketle (macOS uygulaması)
+      - name: Paketle (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
           set -euo pipefail
-          APP="Sesten Metne.app"
-          VERSION="${{ needs.create-release.outputs.tag }}"
-          VERSION="${VERSION#v}"
-
-          mkdir -p "$APP/Contents/MacOS"
-          lipo -create -output "$APP/Contents/MacOS/whisper_gui" \
+          # Tek dosya isteniyor, bu yüzden `.app` paketi yok: iki mimari tek
+          # evrensel ikilide birleştirilip olduğu gibi yükleniyor.
+          lipo -create -output "${{ matrix.asset }}" \
             "target/${{ matrix.target }}/release/whisper_gui" \
             "target/x86_64-apple-darwin/release/whisper_gui"
-          chmod +x "$APP/Contents/MacOS/whisper_gui"
-          lipo -info "$APP/Contents/MacOS/whisper_gui"
-
-          cat > "$APP/Contents/Info.plist" <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CFBundleName</key><string>Sesten Metne</string>
-            <key>CFBundleDisplayName</key><string>Sesten Metne</string>
-            <key>CFBundleExecutable</key><string>whisper_gui</string>
-            <key>CFBundleIdentifier</key><string>dev.whisper-gui.WhisperGui</string>
-            <key>CFBundlePackageType</key><string>APPL</string>
-            <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-            <key>CFBundleVersion</key><string>${VERSION}</string>
-            <key>LSMinimumSystemVersion</key><string>11.0</string>
-            <key>NSHighResolutionCapable</key><true/>
-          </dict>
-          </plist>
-          PLIST
-
-          # Paketin yapısını ve çalıştırma izinlerini koruyarak sıkıştır.
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "${{ matrix.asset }}"
+          chmod +x "${{ matrix.asset }}"
+          lipo -info "${{ matrix.asset }}"
 
       - name: Paketle (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          New-Item -ItemType Directory -Path pkg | Out-Null
-          Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "pkg/Sesten Metne.exe"
-          Copy-Item README.md "pkg/OKUBENI.md"
-          Compress-Archive -Path pkg/* -DestinationPath "${{ matrix.asset }}"
+          Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "${{ matrix.asset }}"
 
       # Duman testi: pencere açılamaz ama komut satırı modu tüm boru hattını
       # (whisper.cpp dahil) yükler, yani bozuk bir ikili burada yakalanır.
@@ -149,7 +122,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           set -euo pipefail
-          "Sesten Metne.app/Contents/MacOS/whisper_gui" --list-models | head -3
+          "./${{ matrix.asset }}" --list-models | head -3
 
       - name: Paket çalışıyor mu (Windows)
         if: runner.os == 'Windows'
@@ -157,7 +130,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           # Sürüm derlemesi konsolsuz olduğu için çıktı değil, çıkış kodu denetlenir.
-          $p = Start-Process -FilePath "pkg/Sesten Metne.exe" `
+          $p = Start-Process -FilePath "${{ matrix.asset }}" `
                              -ArgumentList "--list-models" `
                              -Wait -PassThru -NoNewWindow
           if ($p.ExitCode -ne 0) {

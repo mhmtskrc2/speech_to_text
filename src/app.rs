@@ -58,7 +58,7 @@ impl Default for App {
             local_file: None,
             model_index: models::DEFAULT_MODEL,
             language_index: 0,
-            format: OutputFormat::Plain,
+            format: OutputFormat::Timestamped,
             translate: false,
             threads: transcribe::default_threads(),
             prompt: String::new(),
