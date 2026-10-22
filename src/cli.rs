@@ -22,7 +22,7 @@ KULLANIM:
 SEÇENEKLER:
     -m, --model <ad>     model (varsayılan: large-v3). --list-models ile listele
     -l, --lang <kod>     konuşma dili, örn. tr / en. Belirtilmezse otomatik algılanır
-    -f, --format <biçim> plain | timestamps | srt  (varsayılan: timestamps)
+    -f, --format <biçim> lines | plain | timestamps | srt  (varsayılan: lines)
     -o, --output <yol>   çıktı dosyası. Belirtilmezse stdout'a yazar
     -t, --threads <n>    iş parçacığı sayısı
         --translate      konuşmayı İngilizceye çevirir
@@ -174,7 +174,7 @@ fn parse(argv: Vec<String>) -> Result<Args> {
     let mut input: Option<String> = None;
     let mut model = MODELS[models::DEFAULT_MODEL].id.to_string();
     let mut language = None;
-    let mut format = OutputFormat::Timestamped;
+    let mut format = OutputFormat::Lines;
     let mut output = None;
     let mut threads = transcribe::default_threads();
     let mut translate = false;
@@ -196,10 +196,13 @@ fn parse(argv: Vec<String>) -> Result<Args> {
             "--prompt" => prompt = value("--prompt")?,
             "-f" | "--format" => {
                 format = match value("--format")?.as_str() {
+                    "lines" | "satirlar" | "satırlar" => OutputFormat::Lines,
                     "plain" | "txt" => OutputFormat::Plain,
                     "timestamps" | "ts" => OutputFormat::Timestamped,
                     "srt" => OutputFormat::Srt,
-                    other => bail!("bilinmeyen biçim: {other} (plain | timestamps | srt)"),
+                    other => {
+                        bail!("bilinmeyen biçim: {other} (lines | plain | timestamps | srt)")
+                    }
                 }
             }
             "--translate" => translate = true,

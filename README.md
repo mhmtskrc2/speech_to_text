@@ -16,7 +16,17 @@ kullanımda çekmek içindir.
 3. Sesi mono 16 kHz'e çözümler.
 4. whisper.cpp ile metne döker ve `.txt` olarak kaydeder.
 
-Çıktı biçimi düz metin, zaman damgalı metin veya SRT altyazı olabilir.
+Çıktı biçimleri:
+
+| Biçim | Nasıl görünür |
+|---|---|
+| **Satırlar** (varsayılan) | Her konuşma parçası kendi satırında, zaman damgası yok |
+| Düz metin | Tek paragraf |
+| Zaman damgalı metin | `[00:00:03,680 --> 00:00:08,240] metin` |
+| SRT altyazı | Standart `.srt` dosyası |
+
+Satır kırılmaları whisper'ın doğal duraklamalara göre ayırdığı yerlerden gelir,
+sabit bir satır genişliğinden değil; bu yüzden okuması ve alıntılaması kolaydır.
 
 ## Hazır indirmeler
 

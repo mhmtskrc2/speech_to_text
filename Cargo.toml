@@ -1,6 +1,6 @@
 [package]
 name = "whisper_gui"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "MP3 URL'sinden metin çıkaran, whisper.cpp tabanlı masaüstü uygulaması"
 license = "MIT"

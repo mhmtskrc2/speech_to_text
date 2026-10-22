@@ -205,6 +205,10 @@ pub fn format_timestamp(ms: i64) -> String {
 /// The output formats offered in the UI.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum OutputFormat {
+    /// One segment per line, no timestamps. whisper breaks segments at natural
+    /// pauses, so these line breaks follow the speech rather than a column
+    /// width — easier to read and to quote than one long paragraph.
+    Lines,
     /// One paragraph of plain text.
     Plain,
     /// `[hh:mm:ss,mmm --> hh:mm:ss,mmm] text` per line.
@@ -216,6 +220,7 @@ pub enum OutputFormat {
 impl OutputFormat {
     pub fn label(self) -> &'static str {
         match self {
+            OutputFormat::Lines => "Satırlar",
             OutputFormat::Plain => "Düz metin",
             OutputFormat::Timestamped => "Zaman damgalı metin",
             OutputFormat::Srt => "SRT altyazı",
@@ -224,12 +229,13 @@ impl OutputFormat {
 
     pub fn extension(self) -> &'static str {
         match self {
-            OutputFormat::Plain | OutputFormat::Timestamped => "txt",
+            OutputFormat::Lines | OutputFormat::Plain | OutputFormat::Timestamped => "txt",
             OutputFormat::Srt => "srt",
         }
     }
 
-    pub const ALL: [OutputFormat; 3] = [
+    pub const ALL: [OutputFormat; 4] = [
+        OutputFormat::Lines,
         OutputFormat::Plain,
         OutputFormat::Timestamped,
         OutputFormat::Srt,
@@ -238,6 +244,14 @@ impl OutputFormat {
 
 pub fn render(segments: &[Segment], format: OutputFormat) -> String {
     match format {
+        OutputFormat::Lines => {
+            let mut out = String::new();
+            for segment in segments {
+                out.push_str(&segment.text);
+                out.push('\n');
+            }
+            out
+        }
         OutputFormat::Plain => {
             let text = segments
                 .iter()
@@ -328,6 +342,30 @@ mod tests {
     fn formats_timestamps() {
         assert_eq!(format_timestamp(0), "00:00:00,000");
         assert_eq!(format_timestamp(3_661_001), "01:01:01,001");
+    }
+
+    #[test]
+    fn renders_one_segment_per_line() {
+        assert_eq!(
+            render(&sample(), OutputFormat::Lines),
+            "Merhaba dünya\nikinci cümle\n"
+        );
+    }
+
+    #[test]
+    fn line_output_carries_no_timestamps() {
+        let out = render(&sample(), OutputFormat::Lines);
+        assert!(!out.contains("00:00"), "satır biçiminde zaman damgası var: {out}");
+        assert!(!out.contains("-->"));
+    }
+
+    #[test]
+    fn every_format_has_a_distinct_label() {
+        let mut labels: Vec<_> = OutputFormat::ALL.iter().map(|f| f.label()).collect();
+        let count = labels.len();
+        labels.sort_unstable();
+        labels.dedup();
+        assert_eq!(labels.len(), count);
     }
 
     #[test]
