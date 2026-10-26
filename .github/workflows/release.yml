@@ -159,16 +159,37 @@ jobs:
           if (-not (Test-Path $vcvars)) { throw "vcvars64.bat bulunamadı: $vcvars" }
 
           $env:CMAKE_GENERATOR = "Ninja"
-          $cmds = @(
-            '"' + $vcvars + '" >nul',
-            'where cl',
-            'where ninja',
-            'cargo build --release --locked --target ${{ matrix.target }} --features vulkan'
-          ) -join ' && '
-          cmd /c $cmds
+
+          # Komutlar bir .bat dosyasına yazılıyor: `cmd /c "<dize>"`, dize
+          # tırnakla başladığında ilk ve son tırnağı kırpıyor ve zinciri sessizce
+          # bozuyor. Önceki denemede komutlar hiç çalışmadığı hâlde çıkış kodu 0
+          # döndü ve eski ikili "GPU sürümü" diye kopyalandı.
+          $bat = @"
+          @echo on
+          call "$vcvars"
+          if errorlevel 1 exit /b 1
+          where cl
+          if errorlevel 1 exit /b 1
+          where ninja
+          if errorlevel 1 exit /b 1
+          cargo build --release --locked --target ${{ matrix.target }} --features vulkan
+          "@
+          Set-Content -Path build-gpu.bat -Value $bat -Encoding ascii
+          cmd /c build-gpu.bat
           if ($LASTEXITCODE -ne 0) { throw "Vulkan derlemesi başarısız: $LASTEXITCODE" }
 
           Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "Sesten-Metne-GPU.exe"
+
+          # Derlemenin gerçekten farklı bir ikili ürettiğini doğrula. Sessizce
+          # atlanmış bir derleme, CPU ikilisinin kopyasını "GPU sürümü" diye
+          # yayımlamaya yol açıyordu; bu kontrol onu imkânsız kılar.
+          $cpu = (Get-FileHash "${{ matrix.asset }}").Hash
+          $gpu = (Get-FileHash "Sesten-Metne-GPU.exe").Hash
+          if ($cpu -eq $gpu) {
+            Remove-Item "Sesten-Metne-GPU.exe"
+            throw "GPU ikilisi CPU ikilisiyle birebir aynı: Vulkan derlemesi gerçekleşmemiş"
+          }
+          Write-Host "GPU ikilisi CPU'dan farklı, Vulkan derlemesi gerçekleşti."
 
       # Duman testi: pencere açılamaz ama komut satırı modu tüm boru hattını
       # (whisper.cpp dahil) yükler, yani bozuk bir ikili burada yakalanır.
