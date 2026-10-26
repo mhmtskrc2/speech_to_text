@@ -14,6 +14,9 @@ sürümü ayrı duruyor. **Önce GPU sürümünü deneyin**; açılmazsa CPU sü
 indirin. Uygulamanın "Gelişmiş" bölümündeki *Hızlandırma:* satırı hangi
 aygıtın kullanıldığını adıyla yazar.
 
+Yukarıdaki listede `Sesten-Metne-GPU.exe` yoksa o sürümde GPU derlemesi
+üretilememiştir; CPU sürümü her durumda çalışır.
+
 Mac dosyası evrensel (universal) bir ikilidir; hangi işlemciye sahip olduğunuzu
 bilmenize gerek yok. Metal hızlandırması hazır gelir.
 
