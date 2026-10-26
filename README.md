@@ -90,13 +90,23 @@ varsa kullanılır, bir makinede Metal başlatılamazsa whisper.cpp kendiliğind
 CPU'ya düşer. Hangisinin geçerli olduğunu "Gelişmiş" bölümündeki
 *Hızlandırma:* satırından görebilirsiniz.
 
-Windows ve Linux'ta GPU, derleme zamanında SDK gerektirdiği için isteğe bağlıdır
-(dağıtılan paketler CPU'da çalışır):
+Windows ve Linux'ta GPU, derleme zamanında SDK gerektirdiği için bir bayrağa
+bağlıdır. Yayımlanan `Sesten-Metne-GPU.exe` Vulkan ile derlenir:
 
 ```bash
-cargo build --release --features cuda     # NVIDIA, CUDA toolkit gerekir
-cargo build --release --features vulkan   # taşınabilir, Vulkan SDK gerekir
+cargo build --release --features vulkan   # NVIDIA / AMD / Intel, Vulkan SDK gerekir
+cargo build --release --features cuda     # yalnızca NVIDIA, CUDA toolkit gerekir
 ```
+
+Dağıtılan pakette Vulkan tercih edilmesinin sebebi, çalışma zamanında yalnızca
+ekran kartı sürücüsüyle gelen `vulkan-1.dll`'e ihtiyaç duyması: ikili tek dosya
+kalıyor. CUDA daha hızlı olabilir ama Windows'ta statik `cublas` kütüphanesi
+olmadığından yanında yüzlerce megabayt DLL taşımayı gerektirir.
+
+> Windows'ta Vulkan derlerken iki tuzak var: iç içe CMake projesi yüzünden
+> `CMAKE_GENERATOR=Ninja` ve vcvars ortamı gerekir, ayrıca uzun yol sınırı
+> nedeniyle `CARGO_TARGET_DIR` kısa bir dizine (örn. `C:\g`) ayarlanmalıdır.
+> İkisi de [release workflow'unda](.github/workflows/release.yml) hazır.
 
 ## Hız
 
@@ -112,10 +122,15 @@ Model seçimi süreyi doğrudan belirler. Apple Silicon bir Mac'te ölçülen,
 (63 saniyelik Türkçe bir kayıtla ölçülüp bir saate oranlandı; model zaten
 indirilmiş kabul edilmiştir. Kendi makineniz ve ses kalitenize göre değişir.)
 
-Mac dosyasında Metal hazır gelir. Windows'ta GPU sürümünü indirdiyseniz sol
-sütuna yakın, CPU sürümünü indirdiyseniz sağ sütun geçerlidir (Vulkan, Metal
-kadar hızlı olmayabilir). `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük
-kullanımda `large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
+Mac dosyasında Metal, Windows GPU dosyasında Vulkan hazır gelir — yani her
+ikisinde de soldaki sütuna yakın süreler beklenir (Vulkan, Metal kadar hızlı
+olmayabilir). Sağdaki sütun yalnızca CPU sürümü için geçerlidir.
+
+Windows GPU sürümünün hızı ölçülmedi: derleme sunucularında ekran kartı yok,
+dolayısıyla yalnızca ikilinin Vulkan içerdiği doğrulanabildi.
+
+`large-v3` en doğru sonucu verir ama en yavaşıdır; günlük kullanımda
+`large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
 
 İlerleme çubuğunun yanında geçen süre ve tahmini kalan süre gösterilir, yani
 yavaş bir işi askıda kalmış bir işten ayırt edebilirsiniz.
@@ -138,7 +153,7 @@ başlamak isterseniz menüden küçük bir model seçmeniz yeterli.
 Modeller `ggerganov/whisper.cpp` Hugging Face deposundan indirilir. Her
 indirmenin boyutu ve SHA-256 özeti kaynak kodda sabitlenmiştir; eşleşmeyen bir
 dosya kabul edilmez. Doğrulanan model yanına küçük bir `.sha256` işaret dosyası
-bırakılır, böylece sonraki açılışlarda 1,6 GB'lık dosya tekrar taranmaz. Elle
+bırakılır, böylece sonraki açılışlarda 2,9 GB'lık dosya tekrar taranmaz. Elle
 kopyalanan bir model ilk kullanımda bir kez doğrulanır; bozuk çıkarsa yeniden
 indirilir.
 
@@ -178,6 +193,7 @@ terminalde yapar:
 ```bash
 whisper_gui https://ornek.com/kayit.mp3 -l tr -o kayit.txt
 whisper_gui kayit.m4a -m large-v3-turbo-q5_0 -f srt -o kayit.srt
+whisper_gui kayit.mp3 -f plain          # tek paragraf; varsayılan "lines"
 whisper_gui --list-models
 whisper_gui --help
 ```
@@ -213,6 +229,8 @@ düşürür.
 | `src/ffmpeg.rs` | ffmpeg bulma/indirme ve yedek çözümleme |
 | `src/transcribe.rs` | whisper.cpp sarmalayıcısı ve çıktı biçimleri |
 | `src/cli.rs` | başsız mod |
+| `src/paths.rs` | platforma göre önbellek konumları |
+| `src/lib.rs` | modüllerin dışa açılması (arayüz testleri için) |
 
 ## Lisans
 

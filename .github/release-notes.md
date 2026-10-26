@@ -60,10 +60,15 @@ Model seçimi süreyi doğrudan belirler. Apple Silicon bir Mac'te ölçülen,
 (63 saniyelik Türkçe bir kayıtla ölçülüp bir saate oranlandı; model zaten
 indirilmiş kabul edilmiştir. Kendi makineniz ve ses kalitenize göre değişir.)
 
-Mac dosyasında Metal hazır gelir. Windows'ta GPU sürümünü indirdiyseniz sol
-sütuna yakın, CPU sürümünü indirdiyseniz sağ sütun geçerlidir (Vulkan, Metal
-kadar hızlı olmayabilir). `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük
-kullanımda `large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
+Mac dosyasında Metal, Windows GPU dosyasında Vulkan hazır gelir — yani her
+ikisinde de soldaki sütuna yakın süreler beklenir (Vulkan, Metal kadar hızlı
+olmayabilir). Sağdaki sütun yalnızca CPU sürümü için geçerlidir.
+
+Windows GPU sürümünün hızı ölçülmedi: derleme sunucularında ekran kartı yok,
+dolayısıyla yalnızca ikilinin Vulkan içerdiği doğrulanabildi.
+
+`large-v3` en doğru sonucu verir ama en yavaşıdır; günlük kullanımda
+`large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
 
 İlerleme çubuğunun yanında geçen süre ve tahmini kalan süre gösterilir, yani
 yavaş bir işi askıda kalmış bir işten ayırt edebilirsiniz.
