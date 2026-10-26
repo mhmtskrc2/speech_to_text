@@ -160,6 +160,12 @@ jobs:
 
           $env:CMAKE_GENERATOR = "Ninja"
 
+          # Kısa bir derleme dizini: ggml'in iç içe projesi
+          # vulkan-shaders-gen-prefix\src\vulkan-shaders-gen-build\... diye
+          # derinleştiği için PDB yolu Windows'un 260 karakter sınırını aşıyor
+          # ve cl.exe "C1041: cannot open program database" veriyor.
+          $env:CARGO_TARGET_DIR = "C:\g"
+
           # Komutlar bir .bat dosyasına yazılıyor: `cmd /c "<dize>"`, dize
           # tırnakla başladığında ilk ve son tırnağı kırpıyor ve zinciri sessizce
           # bozuyor. Önceki denemede komutlar hiç çalışmadığı hâlde çıkış kodu 0
@@ -178,7 +184,8 @@ jobs:
           cmd /c build-gpu.bat
           if ($LASTEXITCODE -ne 0) { throw "Vulkan derlemesi başarısız: $LASTEXITCODE" }
 
-          Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "Sesten-Metne-GPU.exe"
+          Copy-Item "$env:CARGO_TARGET_DIR/${{ matrix.target }}/release/whisper_gui.exe" `
+                    "Sesten-Metne-GPU.exe"
 
           # Derlemenin gerçekten farklı bir ikili ürettiğini doğrula. Sessizce
           # atlanmış bir derleme, CPU ikilisinin kopyasını "GPU sürümü" diye
