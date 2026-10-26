@@ -78,6 +78,21 @@ jobs:
           fi
           rustc --version
 
+      - name: Vulkan SDK kur (Windows GPU derlemesi için)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $url = "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan_sdk.exe"
+          Invoke-WebRequest -Uri $url -OutFile vulkan_sdk.exe
+          # Gölgelendiriciler derleme zamanında glslc ile derlendiği için SDK
+          # gerekir; çalışma zamanında yalnızca sürücüyle gelen vulkan-1.dll.
+          Start-Process -FilePath .\vulkan_sdk.exe -Wait -NoNewWindow `
+            -ArgumentList "--accept-licenses","--default-answer","--confirm-command","install"
+          $sdk = (Get-ChildItem "C:\VulkanSDK" -Directory | Sort-Object Name -Descending)[0].FullName
+          "VULKAN_SDK=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "VULKAN_SDK = $sdk"
+
       - name: Derle
         shell: bash
         run: |
@@ -116,6 +131,12 @@ jobs:
           $ErrorActionPreference = "Stop"
           Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "${{ matrix.asset }}"
 
+          # GPU sürümü ayrı bir dosya: Vulkan derlemesi vulkan-1.dll'e yükleme
+          # zamanında bağlanır, yani ekran kartı sürücüsü olmayan makinelerde
+          # açılmaz. Tek bir ikili ikisini birden karşılayamıyor.
+          cargo build --release --locked --target "${{ matrix.target }}" --features vulkan
+          Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "Sesten-Metne-GPU.exe"
+
       # Duman testi: pencere açılamaz ama komut satırı modu tüm boru hattını
       # (whisper.cpp dahil) yükler, yani bozuk bir ikili burada yakalanır.
       - name: Paket çalışıyor mu (macOS)
@@ -138,10 +159,22 @@ jobs:
             throw "beklenmeyen çıkış kodu: $($p.ExitCode)"
           }
 
+          # GPU sürümü yalnızca bilgi amaçlı denenir: runner'larda ekran kartı
+          # sürücüsü yok, dolayısıyla vulkan-1.dll de yok. Burada çalışmaması
+          # beklenen bir sonuç, derlemeyi düşürmemeli.
+          $g = Start-Process -FilePath "Sesten-Metne-GPU.exe" `
+                             -ArgumentList "--list-models" `
+                             -Wait -PassThru -NoNewWindow -ErrorAction SilentlyContinue
+          Write-Host "GPU sürümü çıkış kodu (runner'da GPU yok): $($g.ExitCode)"
+
       - name: Release'e yükle
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          FILES=("${{ matrix.asset }}")
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            FILES+=("Sesten-Metne-GPU.exe")
+          fi
           gh release upload "${{ needs.create-release.outputs.tag }}" \
-            "${{ matrix.asset }}" --clobber
+            "${FILES[@]}" --clobber

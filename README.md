@@ -35,8 +35,16 @@ sayfasından kendi sisteminize uyan paketi indirin:
 
 | İndirme | Kimin için |
 |---|---|
-| `Sesten-Metne.exe` | 64-bit Windows 10 / 11 |
+| `Sesten-Metne-GPU.exe` | Windows + ekran kartı (NVIDIA / AMD / Intel) — **hızlı** |
+| `Sesten-Metne.exe` | Windows, ekran kartı sürücüsü olmayan makineler |
 | `sesten-metne-macos` | Tüm Mac'ler — evrensel ikili, Metal hızlandırmalı |
+
+Windows'ta iki dosya olmasının sebebi teknik bir zorunluluk: GPU sürümü
+`vulkan-1.dll`'e yükleme zamanında bağlanır, o da ekran kartı sürücüsüyle
+gelir. Sürücüsü olmayan bir makinede GPU sürümü hiç açılmaz, bu yüzden CPU
+sürümü ayrı duruyor. **Önce GPU sürümünü deneyin**; açılmazsa CPU sürümünü
+indirin. Uygulamanın "Gelişmiş" bölümündeki *Hızlandırma:* satırı hangi
+aygıtın kullanıldığını adıyla yazar.
 
 **Windows'ta ilk açılış.** İndirip çalıştırın. SmartScreen uyarırsa **Ek
 bilgi** → **Yine de çalıştır**. Açılmazsa
@@ -104,8 +112,9 @@ Model seçimi süreyi doğrudan belirler. Apple Silicon bir Mac'te ölçülen,
 (63 saniyelik Türkçe bir kayıtla ölçülüp bir saate oranlandı; model zaten
 indirilmiş kabul edilmiştir. Kendi makineniz ve ses kalitenize göre değişir.)
 
-Mac paketinde Metal hazır gelir. Windows paketi CPU'da çalışır, yani sağdaki
-sütun geçerlidir. `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük
+Mac dosyasında Metal hazır gelir. Windows'ta GPU sürümünü indirdiyseniz sol
+sütuna yakın, CPU sürümünü indirdiyseniz sağ sütun geçerlidir (Vulkan, Metal
+kadar hızlı olmayabilir). `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük
 kullanımda `large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
 
 İlerleme çubuğunun yanında geçen süre ve tahmini kalan süre gösterilir, yani

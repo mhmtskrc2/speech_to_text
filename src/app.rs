@@ -33,6 +33,10 @@ pub struct App {
     suggested_stem: String,
     saved_to: Option<PathBuf>,
 
+    /// Looked up once at startup: enumerating GPUs on every repaint would be
+    /// wasteful, and the answer doesn't change while the app runs.
+    gpu_device: Option<String>,
+
     stage: Option<Stage>,
     status: String,
     progress: Option<f32>,
@@ -68,6 +72,7 @@ impl Default for App {
             text: String::new(),
             suggested_stem: "transkript".into(),
             saved_to: None,
+            gpu_device: transcribe::gpu_device_name(),
             stage: None,
             status: "Bir ses adresi girip \"Metne Dönüştür\"e basın.".into(),
             progress: None,
@@ -529,13 +534,22 @@ impl App {
                 // GPU hızlandırma bir tercih değil: varsa her zaman kullanılır.
                 // Burada yalnızca durumu bildiriyoruz.
                 let (text, hint) = match transcribe::GPU_BACKEND {
-                    Some(backend) => (
-                        format!("Hızlandırma: {backend}"),
-                        "GPU kullanılamazsa işlem kendiliğinden CPU'ya düşer",
-                    ),
+                    Some(backend) => match self.gpu_device.as_deref() {
+                        Some(device) => (
+                            format!("Hızlandırma: {backend} — {device}"),
+                            "Metne dönüştürme bu aygıtta çalışacak".to_string(),
+                        ),
+                        None => (
+                            format!("Hızlandırma: {backend} (uygun aygıt bulunamadı)"),
+                            format!(
+                                "Bu ikili {backend} ile derlendi ama kullanılabilir bir \
+                                 aygıt bulunamadı; işlem CPU'da çalışacak"
+                            ),
+                        ),
+                    },
                     None => (
                         "Hızlandırma: CPU".to_string(),
-                        "Bu platformda GPU arka ucu yok; işlem CPU'da çalışır",
+                        "Bu ikili GPU arka ucu olmadan derlendi".to_string(),
                     ),
                 };
                 ui.label(egui::RichText::new(text).small().weak())

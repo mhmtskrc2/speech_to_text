@@ -64,6 +64,25 @@ pub const GPU_BACKEND: Option<&str> = if cfg!(target_os = "macos") {
     None
 };
 
+/// Name of the GPU the backend will actually use, when it can tell us.
+///
+/// [`GPU_BACKEND`] only says what was compiled in; this says what was found.
+/// A Vulkan build on a machine with no usable device falls back to the CPU
+/// silently, and "is my graphics card being used?" deserves a real answer.
+pub fn gpu_device_name() -> Option<String> {
+    #[cfg(feature = "vulkan")]
+    {
+        whisper_rs::vulkan::list_devices()
+            .into_iter()
+            .next()
+            .map(|device| device.name)
+    }
+    #[cfg(not(feature = "vulkan"))]
+    {
+        None
+    }
+}
+
 /// Default thread count: leave one core for the UI, but always use at least one.
 pub fn default_threads() -> i32 {
     let cores = std::thread::available_parallelism()

@@ -3,16 +3,29 @@ Rust kurmaya gerek yok — aşağıdaki paketi indirip çalıştırmanız yeterl
 
 | İndirme | Kimin için |
 |---|---|
-| `Sesten-Metne.exe` | 64-bit Windows 10 / 11 |
-| `sesten-metne-macos` | Tüm Mac'ler (Apple Silicon ve Intel tek dosyada) |
+| `Sesten-Metne-GPU.exe` | Windows + ekran kartı (NVIDIA / AMD / Intel) — **hızlı** |
+| `Sesten-Metne.exe` | Windows, ekran kartı sürücüsü olmayan makineler |
+| `sesten-metne-macos` | Tüm Mac'ler — evrensel ikili, Metal hızlandırmalı |
+
+Windows'ta iki dosya olmasının sebebi teknik bir zorunluluk: GPU sürümü
+`vulkan-1.dll`'e yükleme zamanında bağlanır, o da ekran kartı sürücüsüyle
+gelir. Sürücüsü olmayan bir makinede GPU sürümü hiç açılmaz, bu yüzden CPU
+sürümü ayrı duruyor. **Önce GPU sürümünü deneyin**; açılmazsa CPU sürümünü
+indirin. Uygulamanın "Gelişmiş" bölümündeki *Hızlandırma:* satırı hangi
+aygıtın kullanıldığını adıyla yazar.
 
 Mac dosyası evrensel (universal) bir ikilidir; hangi işlemciye sahip olduğunuzu
 bilmenize gerek yok. Metal hızlandırması hazır gelir.
 
 ### Windows'ta ilk açılış
 
-**Sesten-Metne.exe**'yi indirip çalıştırın. SmartScreen uyarı verirse
-**Ek bilgi** → **Yine de çalıştır** deyin (uygulama imzalı değil).
+İndirdiğiniz exe'yi çalıştırın (önce **Sesten-Metne-GPU.exe**'yi deneyin).
+SmartScreen uyarı verirse **Ek bilgi** → **Yine de çalıştır** deyin
+(uygulama imzalı değil).
+
+GPU sürümü "vulkan-1.dll bulunamadı" gibi bir hatayla açılmazsa ekran kartı
+sürücünüz eksik demektir: ya sürücüyü güncelleyin ya da **Sesten-Metne.exe**
+(CPU sürümü) indirin.
 
 Açılmazsa [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 kurulu olmayabilir; kurup tekrar deneyin.
@@ -44,8 +57,9 @@ Model seçimi süreyi doğrudan belirler. Apple Silicon bir Mac'te ölçülen,
 (63 saniyelik Türkçe bir kayıtla ölçülüp bir saate oranlandı; model zaten
 indirilmiş kabul edilmiştir. Kendi makineniz ve ses kalitenize göre değişir.)
 
-Mac paketinde Metal hazır gelir. Windows paketi CPU'da çalışır, yani sağdaki
-sütun geçerlidir. `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük
+Mac dosyasında Metal hazır gelir. Windows'ta GPU sürümünü indirdiyseniz sol
+sütuna yakın, CPU sürümünü indirdiyseniz sağ sütun geçerlidir (Vulkan, Metal
+kadar hızlı olmayabilir). `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük
 kullanımda `large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
 
 İlerleme çubuğunun yanında geçen süre ve tahmini kalan süre gösterilir, yani
