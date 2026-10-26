@@ -83,6 +83,9 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress | Out-Null
+          }
           $url = "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan_sdk.exe"
           Invoke-WebRequest -Uri $url -OutFile vulkan_sdk.exe
           # Gölgelendiriciler derleme zamanında glslc ile derlendiği için SDK
@@ -144,16 +147,25 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          # ggml, gölgelendirici üreticisini iç içe bir CMake projesi olarak
-          # kurar; o nested çağrı MSVC ortamını devralmadığı için derleyiciyi
-          # bulamıyor. cargo'yu vcvars64 ortamında çalıştırmak bunu çözer.
+          # ggml, gölgelendirici üreticisini iç içe ayrı bir CMake projesi
+          # olarak kurar. Visual Studio üreteciyle o iç proje, MSBuild'in özel
+          # derleme adımı içinde çalıştığı için derleyiciyi tanıyamıyor:
+          # "No CMAKE_C_COMPILER could be found". Ninja üreteci bu katmanı
+          # ortadan kaldırıyor; iç proje de cl.exe'yi ortamdan buluyor, bu
+          # yüzden her şey vcvars64 ortamında çalıştırılıyor.
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           $vs = & $vswhere -latest -products * -property installationPath
           $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvars64.bat"
           if (-not (Test-Path $vcvars)) { throw "vcvars64.bat bulunamadı: $vcvars" }
 
-          $build = "cargo build --release --locked --target ${{ matrix.target }} --features vulkan"
-          cmd /c "`"$vcvars`" >nul && $build"
+          $env:CMAKE_GENERATOR = "Ninja"
+          $cmds = @(
+            '"' + $vcvars + '" >nul',
+            'where cl',
+            'where ninja',
+            'cargo build --release --locked --target ${{ matrix.target }} --features vulkan'
+          ) -join ' && '
+          cmd /c $cmds
           if ($LASTEXITCODE -ne 0) { throw "Vulkan derlemesi başarısız: $LASTEXITCODE" }
 
           Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "Sesten-Metne-GPU.exe"
