@@ -100,6 +100,21 @@ impl App {
         Self::default()
     }
 
+    /// Same window, with every machine-dependent value pinned.
+    ///
+    /// A rendered snapshot otherwise captures the developer's home directory
+    /// and CPU core count, so it can only ever match on the machine that
+    /// produced it. (Which models are cached is pinned separately, by pointing
+    /// [`paths::CACHE_DIR_ENV`] at an empty directory.)
+    #[doc(hidden)]
+    pub fn for_snapshot_test(cc: &eframe::CreationContext<'_>) -> Self {
+        Self {
+            output_dir: Some(PathBuf::from("/tmp/sesten-metne")),
+            threads: 8,
+            ..Self::new(cc)
+        }
+    }
+
     fn is_running(&self) -> bool {
         self.events.is_some()
     }
@@ -538,11 +553,20 @@ impl App {
                             format!("Hızlandırma: {backend} — {device}"),
                             "Metne dönüştürme bu aygıtta çalışacak".to_string(),
                         ),
-                        None => (
+                        // Only a backend that can enumerate devices is allowed
+                        // to claim none was found.
+                        None if transcribe::GPU_DEVICE_LISTING => (
                             format!("Hızlandırma: {backend} (uygun aygıt bulunamadı)"),
                             format!(
                                 "Bu ikili {backend} ile derlendi ama kullanılabilir bir \
                                  aygıt bulunamadı; işlem CPU'da çalışacak"
+                            ),
+                        ),
+                        None => (
+                            format!("Hızlandırma: {backend}"),
+                            format!(
+                                "{backend} kullanılacak; başlatılamazsa işlem \
+                                 kendiliğinden CPU'ya düşer"
                             ),
                         ),
                     },

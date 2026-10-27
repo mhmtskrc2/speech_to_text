@@ -64,6 +64,14 @@ pub const GPU_BACKEND: Option<&str> = if cfg!(target_os = "macos") {
     None
 };
 
+/// Whether this build can enumerate GPU devices by name.
+///
+/// Only the Vulkan backend exposes an enumeration API. Under Metal a missing
+/// name means "we can't ask", not "there is no GPU" — reporting those the same
+/// way told Metal users their acceleration was unavailable while it was in
+/// fact running.
+pub const GPU_DEVICE_LISTING: bool = cfg!(feature = "vulkan");
+
 /// Name of the GPU the backend will actually use, when it can tell us.
 ///
 /// [`GPU_BACKEND`] only says what was compiled in; this says what was found.

@@ -14,7 +14,18 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 
+/// Overrides the cache location.
+///
+/// Models reach 2.9 GB, so putting them on another drive is a reasonable thing
+/// to want. It also lets the snapshot tests run against an empty cache, so a
+/// rendered window doesn't depend on which models the developer happens to
+/// have downloaded.
+pub const CACHE_DIR_ENV: &str = "SESTEN_METNE_CACHE";
+
 fn cache_root() -> Result<PathBuf> {
+    if let Some(dir) = std::env::var_os(CACHE_DIR_ENV).filter(|d| !d.is_empty()) {
+        return Ok(PathBuf::from(dir));
+    }
     let dirs = ProjectDirs::from("dev", "whisper-gui", "WhisperGui")
         .context("işletim sisteminin önbellek dizini bulunamadı")?;
     Ok(dirs.cache_dir().to_path_buf())
