@@ -293,9 +293,7 @@ mod tests {
         let from = 44_100;
         let seconds = 1.0;
         let input: Vec<f32> = (0..(from as f64 * seconds) as usize)
-            .map(|n| {
-                (std::f64::consts::TAU * 440.0 * n as f64 / from as f64).sin() as f32 * 0.5
-            })
+            .map(|n| (std::f64::consts::TAU * 440.0 * n as f64 / from as f64).sin() as f32 * 0.5)
             .collect();
 
         let out = resample(&input, from, TARGET_RATE).unwrap();
@@ -310,7 +308,10 @@ mod tests {
         // Skip the edges, where the window taper legitimately reduces amplitude.
         let middle = &out[2_000..expected - 2_000];
         let peak = middle.iter().fold(0f32, |acc, s| acc.max(s.abs()));
-        assert!((peak - 0.5).abs() < 0.05, "tepe genlik {peak}, 0.5 olmalıydı");
+        assert!(
+            (peak - 0.5).abs() < 0.05,
+            "tepe genlik {peak}, 0.5 olmalıydı"
+        );
     }
 
     #[test]

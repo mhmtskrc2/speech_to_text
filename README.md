@@ -1,5 +1,7 @@
 # Sesten Metne
 
+[![CI](https://github.com/mhmtskrc2/speech_to_text/actions/workflows/ci.yml/badge.svg)](https://github.com/mhmtskrc2/speech_to_text/actions/workflows/ci.yml)
+
 Bir MP3 adresi (veya yerel ses dosyası) alıp metne çeviren, whisper.cpp tabanlı
 masaüstü uygulaması. macOS ve Windows'ta çalışır, Rust ile yazılmıştır.
 
@@ -209,8 +211,15 @@ boru hattına aktarabilirsiniz.
 ```bash
 cargo test                                  # birim testleri + arayüz anlık görüntüleri
 UPDATE_SNAPSHOTS=1 cargo test --test ui     # arayüz değiştiyse görüntüleri tazele
-cargo clippy --all-targets
+cargo clippy --all-targets -- -D warnings
+cargo fmt --check
 ```
+
+Bu dört komut her push'ta [CI'da](.github/workflows/ci.yml) da çalışır. CI
+macOS'ta koşar: arayüz anlık görüntüleri burada üretildiği ve font
+rasterleştirmesi platforma göre değiştiği için, başka bir sistemde
+karşılaştırma gerçek bir hata olmadan düşerdi. Bir anlık görüntü testi
+düşerse, fark görüntüleri koşunun "snapshot-diffs" eki olarak indirilebilir.
 
 Arayüz testleri [`egui_kittest`](https://github.com/emilk/egui) ile başsız
 çalışır ve `tests/snapshots/` altındaki PNG'lerle karşılaştırılır; bir denetimin

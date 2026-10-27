@@ -1,0 +1,69 @@
+name: CI
+
+# Her push ve pull request'te testleri ve clippy'yi çalıştırır. Release
+# workflow'u yalnızca etiket atıldığında çalıştığı için, bu olmadan bir
+# regresyon ancak sürüm çıkarılırken fark edilirdi.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# Aynı dal için yeni bir push gelirse süren koşuyu iptal et: whisper.cpp
+# derlemesi pahalı, eskiyen bir koşuyu tamamlamanın değeri yok.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    # macOS'ta çalışır çünkü arayüz anlık görüntüleri burada üretildi: font
+    # rasterleştirmesi platforma göre değiştiğinden Linux'ta karşılaştırma
+    # gerçek bir hata olmadan düşerdi.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust araç zincirini hazırla
+        run: |
+          rustup update --no-self-update stable
+          rustup default stable
+          rustup component add clippy rustfmt
+          rustc --version
+
+      # whisper.cpp her koşuda kaynaktan derleniyor; önbellek olmadan her
+      # çalıştırma dakikalarca sürer.
+      - name: Derleme önbelleği
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Biçim
+        run: cargo fmt --check
+
+      - name: Clippy
+        # Uyarılar hata sayılır: aksi hâlde birikir ve kimse okumaz.
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Testler
+        # Arayüz anlık görüntüleri de burada çalışır; bir denetimin ekrandan
+        # kaybolması ya da fontta olmayan bir karakter testi düşürür.
+        run: cargo test --locked
+
+      - name: Anlık görüntü farkları (test düştüyse)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-diffs
+          path: tests/snapshots/*.diff.png
+          if-no-files-found: ignore

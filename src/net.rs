@@ -158,7 +158,9 @@ pub fn download_to_file(
         let actual = hex(&hasher.finalize());
         verify(
             actual.eq_ignore_ascii_case(expected),
-            format!("SHA-256 doğrulaması başarısız ({url})\nbeklenen: {expected}\ngelen:    {actual}"),
+            format!(
+                "SHA-256 doğrulaması başarısız ({url})\nbeklenen: {expected}\ngelen:    {actual}"
+            ),
         )?;
     }
 
@@ -191,13 +193,9 @@ fn hex(bytes: &[u8]) -> String {
 ///
 /// `progress` is called with the fraction read, since this walks the whole file
 /// and a large model takes a noticeable moment.
-pub fn verify_file(
-    path: &Path,
-    sha256: &str,
-    progress: &mut dyn FnMut(f32),
-) -> Result<bool> {
-    let mut file = File::open(path)
-        .with_context(|| format!("dosya açılamadı: {}", path.display()))?;
+pub fn verify_file(path: &Path, sha256: &str, progress: &mut dyn FnMut(f32)) -> Result<bool> {
+    let mut file =
+        File::open(path).with_context(|| format!("dosya açılamadı: {}", path.display()))?;
     let total = file.metadata().map(|m| m.len()).unwrap_or(0).max(1);
 
     let mut hasher = Sha256::new();

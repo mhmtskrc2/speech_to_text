@@ -120,9 +120,7 @@ pub fn run(
         && language != "en"
         && !context.is_multilingual()
     {
-        bail!(
-            "seçilen model yalnızca İngilizce konuşmayı tanıyabilir; çok dilli bir model seçin"
-        );
+        bail!("seçilen model yalnızca İngilizce konuşmayı tanıyabilir; çok dilli bir model seçin");
     }
 
     let mut state = context
@@ -174,7 +172,11 @@ pub fn run(
         segments.push(Segment {
             start_ms: centis_to_ms(segment.start_timestamp()),
             end_ms: centis_to_ms(segment.end_timestamp()),
-            text: segment.to_str_lossy().unwrap_or_default().trim().to_string(),
+            text: segment
+                .to_str_lossy()
+                .unwrap_or_default()
+                .trim()
+                .to_string(),
         });
     }
     segments.retain(|s| !s.text.is_empty());
@@ -374,7 +376,10 @@ mod tests {
     #[test]
     fn line_output_carries_no_timestamps() {
         let out = render(&sample(), OutputFormat::Lines);
-        assert!(!out.contains("00:00"), "satır biçiminde zaman damgası var: {out}");
+        assert!(
+            !out.contains("00:00"),
+            "satır biçiminde zaman damgası var: {out}"
+        );
         assert!(!out.contains("-->"));
     }
 

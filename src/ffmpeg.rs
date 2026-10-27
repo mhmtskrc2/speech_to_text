@@ -60,7 +60,11 @@ fn asset() -> Option<Asset> {
 }
 
 fn binary_name() -> &'static str {
-    if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }
+    if cfg!(windows) {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    }
 }
 
 fn cached_binary() -> Result<PathBuf> {
@@ -154,10 +158,7 @@ pub fn ensure(
     let _ = std::fs::remove_file(&archive);
 
     if !runs(&cached) {
-        bail!(
-            "indirilen ffmpeg çalıştırılamadı: {}",
-            cached.display()
-        );
+        bail!("indirilen ffmpeg çalıştırılamadı: {}", cached.display());
     }
 
     Ok(Source::Downloaded(cached))

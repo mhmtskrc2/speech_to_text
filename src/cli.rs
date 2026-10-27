@@ -110,7 +110,11 @@ fn run(argv: Vec<String>) -> Result<i32> {
                     "[bitti] {} parça · {audio_secs:.0} sn ses · toplam {elapsed_secs:.1} sn · \
                      metne dönüştürme {transcribe_secs:.1} sn ({:.1}× gerçek zaman) · {decoder}",
                     segments.len(),
-                    if transcribe_secs > 0.0 { audio_secs / transcribe_secs } else { 0.0 }
+                    if transcribe_secs > 0.0 {
+                        audio_secs / transcribe_secs
+                    } else {
+                        0.0
+                    }
                 );
                 let text = transcribe::render(&segments, args.format);
                 match &args.output {

@@ -295,7 +295,9 @@ impl App {
         if let Some(path) = rfd::FileDialog::new()
             .add_filter(
                 "Ses/video dosyaları",
-                &["mp3", "wav", "m4a", "aac", "flac", "ogg", "opus", "mp4", "mkv", "mov", "webm"],
+                &[
+                    "mp3", "wav", "m4a", "aac", "flac", "ogg", "opus", "mp4", "mkv", "mov", "webm",
+                ],
             )
             .add_filter("Tüm dosyalar", &["*"])
             .pick_file()
@@ -517,10 +519,7 @@ impl App {
                         .as_ref()
                         .map(|p| p.display().to_string())
                         .unwrap_or_else(|| "(klasör seçilmedi)".into());
-                    if ui
-                        .button("Klasör…")
-                        .on_hover_text(label.clone())
-                        .clicked()
+                    if ui.button("Klasör…").on_hover_text(label.clone()).clicked()
                         && let Some(dir) = rfd::FileDialog::new().pick_folder()
                     {
                         self.output_dir = Some(dir);
@@ -750,13 +749,19 @@ fn short_path(path: &str) -> String {
     if chars.len() <= MAX {
         return path.to_string();
     }
-    format!("…{}", chars[chars.len() - MAX + 1..].iter().collect::<String>())
+    format!(
+        "…{}",
+        chars[chars.len() - MAX + 1..].iter().collect::<String>()
+    )
 }
 
 /// Opens the system file browser at the saved transcript.
 fn reveal(path: &std::path::Path) {
     #[cfg(target_os = "macos")]
-    let _ = std::process::Command::new("open").arg("-R").arg(path).spawn();
+    let _ = std::process::Command::new("open")
+        .arg("-R")
+        .arg(path)
+        .spawn();
 
     #[cfg(target_os = "windows")]
     let _ = std::process::Command::new("explorer")
