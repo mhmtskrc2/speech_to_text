@@ -56,6 +56,9 @@ jobs:
             # Metal bayrak gerektirmez; macOS hedeflerinde Cargo.toml'den gelir.
             features: ""
             asset: sesten-metne-macos
+          # Windows tek dosya: Vulkan ile derlenir, yani NVIDIA/AMD/Intel
+          # kartlarda hızlandırma hazır gelir. Derleme vcvars + Ninja + kısa
+          # yol gerektirdiğinden ayrı bir adımda yapılır.
           - name: Windows x64
             os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -97,6 +100,9 @@ jobs:
           Write-Host "VULKAN_SDK = $sdk"
 
       - name: Derle
+        # Windows'ta ikili Vulkan adımında üretilir; burada iki kez derlemenin
+        # anlamı yok.
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           set -euo pipefail
@@ -127,23 +133,12 @@ jobs:
           chmod +x "${{ matrix.asset }}"
           lipo -info "${{ matrix.asset }}"
 
-      - name: Paketle (Windows)
+      # Windows ikilisi Vulkan ile derlenir: tek dosya, NVIDIA/AMD/Intel
+      # kartlarda hızlandırma hazır. Burası düşerse Windows indirmesi hiç
+      # çıkmamalı — sessizce CPU sürümü yayımlamak, aynı isimli dosyanın
+      # bambaşka bir yetenekle dağıtılması demek olurdu.
+      - name: Derle (Windows, Vulkan)
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          Copy-Item "target/${{ matrix.target }}/release/whisper_gui.exe" "${{ matrix.asset }}"
-
-      # GPU sürümü ayrı bir dosya: Vulkan derlemesi vulkan-1.dll'e yükleme
-      # zamanında bağlanır, yani ekran kartı sürücüsü olmayan makinelerde
-      # açılmaz. Tek bir ikili ikisini birden karşılayamıyor.
-      #
-      # `continue-on-error`: bu adım GPU'ya özgü bir derleme sorunu yüzünden
-      # düşerse çalışan CPU sürümü yine de yayımlanmalı. Aksi hâlde isteğe
-      # bağlı bir ek, asıl indirmeyi de götürüyor.
-      - name: GPU sürümünü derle (Windows, Vulkan)
-        if: runner.os == 'Windows'
-        continue-on-error: true
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -185,18 +180,21 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Vulkan derlemesi başarısız: $LASTEXITCODE" }
 
           Copy-Item "$env:CARGO_TARGET_DIR/${{ matrix.target }}/release/whisper_gui.exe" `
-                    "Sesten-Metne-GPU.exe"
+                    "${{ matrix.asset }}"
 
-          # Derlemenin gerçekten farklı bir ikili ürettiğini doğrula. Sessizce
-          # atlanmış bir derleme, CPU ikilisinin kopyasını "GPU sürümü" diye
-          # yayımlamaya yol açıyordu; bu kontrol onu imkânsız kılar.
-          $cpu = (Get-FileHash "${{ matrix.asset }}").Hash
-          $gpu = (Get-FileHash "Sesten-Metne-GPU.exe").Hash
-          if ($cpu -eq $gpu) {
-            Remove-Item "Sesten-Metne-GPU.exe"
-            throw "GPU ikilisi CPU ikilisiyle birebir aynı: Vulkan derlemesi gerçekleşmemiş"
+          # Vulkan'ın gerçekten bağlandığını doğrula. Bir kez, derleme sessizce
+          # atlandığı hâlde çıkış kodu 0 döndü ve GPU'suz bir ikili "GPU
+          # sürümü" diye yayımlandı; bu kontrol onu imkânsız kılar.
+          $dumpbin = Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse `
+                      -Filter dumpbin.exe -ErrorAction SilentlyContinue |
+                     Where-Object { $_.FullName -match "Hostx64\\x64" } |
+                     Select-Object -First 1
+          if (-not $dumpbin) { throw "dumpbin bulunamadı" }
+          $deps = & $dumpbin.FullName /DEPENDENTS "${{ matrix.asset }}"
+          if ($deps -notmatch "vulkan-1.dll") {
+            throw "ikili vulkan-1.dll'e bağlanmamış: Vulkan derlenmemiş"
           }
-          Write-Host "GPU ikilisi CPU'dan farklı, Vulkan derlemesi gerçekleşti."
+          Write-Host "Doğrulandı: ikili vulkan-1.dll'e bağlı, Vulkan derlendi."
 
       # Duman testi: pencere açılamaz ama komut satırı modu tüm boru hattını
       # (whisper.cpp dahil) yükler, yani bozuk bir ikili burada yakalanır.
@@ -220,32 +218,10 @@ jobs:
             throw "beklenmeyen çıkış kodu: $($p.ExitCode)"
           }
 
-          # GPU sürümü yalnızca bilgi amaçlı denenir: runner'larda ekran kartı
-          # sürücüsü yok, dolayısıyla vulkan-1.dll de yok. Burada çalışmaması
-          # beklenen bir sonuç, derlemeyi düşürmemeli.
-          if (Test-Path "Sesten-Metne-GPU.exe") {
-            try {
-              $g = Start-Process -FilePath "Sesten-Metne-GPU.exe" `
-                                 -ArgumentList "--list-models" `
-                                 -Wait -PassThru -NoNewWindow
-              Write-Host "GPU sürümü çıkış kodu (runner'da GPU yok): $($g.ExitCode)"
-            } catch {
-              Write-Host "GPU sürümü runner'da başlatılamadı (beklenen): $_"
-            }
-          } else {
-            Write-Host "GPU sürümü üretilmedi; yalnızca CPU sürümü yayımlanacak."
-          }
-
       - name: Release'e yükle
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          FILES=("${{ matrix.asset }}")
-          # GPU sürümü isteğe bağlı: üretilemediyse sessizce atlanır.
-          if [ -f "Sesten-Metne-GPU.exe" ]; then
-            FILES+=("Sesten-Metne-GPU.exe")
-          fi
-          echo "yüklenecek: ${FILES[*]}"
           gh release upload "${{ needs.create-release.outputs.tag }}" \
-            "${FILES[@]}" --clobber
+            "${{ matrix.asset }}" --clobber

@@ -3,35 +3,26 @@ Rust kurmaya gerek yok — aşağıdaki paketi indirip çalıştırmanız yeterl
 
 | İndirme | Kimin için |
 |---|---|
-| `Sesten-Metne-GPU.exe` | Windows + ekran kartı (NVIDIA / AMD / Intel) — **hızlı** |
-| `Sesten-Metne.exe` | Windows, ekran kartı sürücüsü olmayan makineler |
-| `sesten-metne-macos` | Tüm Mac'ler — evrensel ikili, Metal hızlandırmalı |
+| `Sesten-Metne.exe` | 64-bit Windows 10 / 11 |
+| `sesten-metne-macos` | Tüm Mac'ler — evrensel ikili |
 
-Windows'ta iki dosya olmasının sebebi teknik bir zorunluluk: GPU sürümü
-`vulkan-1.dll`'e yükleme zamanında bağlanır, o da ekran kartı sürücüsüyle
-gelir. Sürücüsü olmayan bir makinede GPU sürümü hiç açılmaz, bu yüzden CPU
-sürümü ayrı duruyor. **Önce GPU sürümünü deneyin**; açılmazsa CPU sürümünü
-indirin. Uygulamanın "Gelişmiş" bölümündeki *Hızlandırma:* satırı hangi
-aygıtın kullanıldığını adıyla yazar.
-
-Yukarıdaki listede `Sesten-Metne-GPU.exe` yoksa o sürümde GPU derlemesi
-üretilememiştir; CPU sürümü her durumda çalışır.
-
-Mac dosyası evrensel (universal) bir ikilidir; hangi işlemciye sahip olduğunuzu
-bilmenize gerek yok. Metal hızlandırması hazır gelir.
+Her platform için tek dosya var ve ikisinde de GPU hızlandırma hazır gelir:
+Mac'te Metal, Windows'ta Vulkan (NVIDIA / AMD / Intel). Seçenek yok, kullanılabilir
+bir aygıt varsa kullanılır; yoksa işlem kendiliğinden CPU'da çalışır.
 
 ### Windows'ta ilk açılış
 
-İndirdiğiniz exe'yi çalıştırın (önce **Sesten-Metne-GPU.exe**'yi deneyin).
-SmartScreen uyarı verirse **Ek bilgi** → **Yine de çalıştır** deyin
-(uygulama imzalı değil).
+Uygulama `vulkan-1.dll`'e ihtiyaç duyar; bu dosya
+ekran kartı sürücüsüyle birlikte gelir ve güncel sürücüsü olan her makinede
+bulunur. Varlığını şöyle kontrol edebilirsiniz — komut isteminde:
 
-GPU sürümü "vulkan-1.dll bulunamadı" gibi bir hatayla açılmazsa ekran kartı
-sürücünüz eksik demektir: ya sürücüyü güncelleyin ya da **Sesten-Metne.exe**
-(CPU sürümü) indirin.
+```
+dir C:\Windows\System32\vulkan-1.dll
+```
 
-Açılmazsa [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-kurulu olmayabilir; kurup tekrar deneyin.
+"File Not Found" diyorsa ekran kartı sürücünüzü güncelleyin (NVIDIA / AMD /
+Intel'in kendi sitesinden); sürücü bu dosyayı da kurar. SmartScreen uyarısı
+çıkarsa **Ek bilgi** → **Yine de çalıştır** deyin.
 
 ### macOS'ta ilk açılış
 
@@ -62,10 +53,11 @@ indirilmiş kabul edilmiştir. Kendi makineniz ve ses kalitenize göre değişir
 
 Mac dosyasında Metal, Windows GPU dosyasında Vulkan hazır gelir — yani her
 ikisinde de soldaki sütuna yakın süreler beklenir (Vulkan, Metal kadar hızlı
-olmayabilir). Sağdaki sütun yalnızca CPU sürümü için geçerlidir.
+olmayabilir). Sağdaki sütun, uygun bir aygıt bulunamayıp işlemin CPU'ya
+düştüğü durum içindir.
 
-Windows GPU sürümünün hızı ölçülmedi: derleme sunucularında ekran kartı yok,
-dolayısıyla yalnızca ikilinin Vulkan içerdiği doğrulanabildi.
+Windows'taki Vulkan hızı ölçülmedi: derleme sunucularında ekran kartı yok,
+dolayısıyla yalnızca ikilinin Vulkan'a bağlandığı doğrulanabildi.
 
 `large-v3` en doğru sonucu verir ama en yavaşıdır; günlük kullanımda
 `large-v3-turbo (q5_0)` doğruluk/hız dengesi olarak çok daha iyidir.
