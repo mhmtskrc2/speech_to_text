@@ -190,8 +190,14 @@ jobs:
                      Where-Object { $_.FullName -match "Hostx64\\x64" } |
                      Select-Object -First 1
           if (-not $dumpbin) { throw "dumpbin bulunamadı" }
-          $deps = & $dumpbin.FullName /DEPENDENTS "${{ matrix.asset }}"
-          if ($deps -notmatch "vulkan-1.dll") {
+          # Out-String şart: dizi üzerinde `-notmatch` eşleşmeyen satırları
+          # döndürür ve boş olmayan dizi `if` içinde doğru sayılır, yani kontrol
+          # her zaman hata verirdi. Tek bir metinde operatör beklendiği gibi
+          # çalışıyor.
+          $deps = (& $dumpbin.FullName /DEPENDENTS "${{ matrix.asset }}" 2>&1) | Out-String
+          if ($LASTEXITCODE -ne 0) { throw "dumpbin çalışmadı: $LASTEXITCODE" }
+          Write-Host $deps
+          if ($deps -notmatch "vulkan-1\.dll") {
             throw "ikili vulkan-1.dll'e bağlanmamış: Vulkan derlenmemiş"
           }
           Write-Host "Doğrulandı: ikili vulkan-1.dll'e bağlı, Vulkan derlendi."
